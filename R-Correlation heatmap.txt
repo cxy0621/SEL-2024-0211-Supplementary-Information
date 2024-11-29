@@ -1,0 +1,55 @@
+getwd()
+setwd("D:/R/2023.9.3meimei")
+.libPaths()
+install.packages("devtools")
+library(usethis)
+library(devtools)
+devtools::install_local("D:/R/R-4.3.1/library/ggcor-1-master", force = TRUE)
+install.packages("ggcor")
+install.packages("vegan")
+install.packages("ade4")
+install.packages("ggplotify")
+
+library(vegan)
+library(ggcor)
+library(dplyr)
+library(ggplot2)
+library(ggplotify)
+env<- read.csv("D:/R/2023.9.3meimei/L-soilphy.csv",row.names = 1)
+spec <- read.csv("D:/R/2023.9.3meimei/L-soilmei.csv")
+spec01 <- t(spec)
+spec
+env
+corr <- fortify_cor(env, type = "upper", show.diag = TRUE,
+                    cor.test = TRUE, cluster.type = "all")
+head(corr)
+mantel<-mantel_test(spec, env, mantel.fun = "mantel.randtest",
+                    spec.select = list(Cmei=3,Nmei=6,Pmei=7))
+mantel<-mantel_test(spec, env, mantel.fun = "mantel.randtest",spec.select = list(OTUs = 1))
+mantel<-mantel_test(spec, env,
+                    spec.select = list(Cmei=3,Nmei=6,Pmei=7)) %>%
+  mutate(r = cut(r, breaks = c(-Inf, 0.20, 0.5, Inf),
+                 labels = c("<0.20", "0.20-0.5", ">=0.5"),
+                 right = FALSE),
+         p.value = cut(p.value, breaks = c(-Inf, 0.001, 0.01, 0.05, Inf),
+                       labels = c("<0.001", "0.001-0.01", "0.01-0.05", ">=0.05"),
+                       right = FALSE))
+
+p1<-quickcor(env, type = "upper",show.diag=F,cor.test = TRUE,angle = 0,family="serif",remove.axis = F) +
+  geom_square(inherit.aes = TRUE) +
+  anno_link(mantel, mapping = aes(colour = p.value, size = r)) +
+  scale_size_manual(values = c(0.5, 1.5, 3)) +
+  geom_mark(data = get_data(type = "upper"),size=3)+
+  geom_diag_label(angle = 0,geom = "text",size=4,hjust=0.8,vjust=0,family="serif",remove.axis = F)
+p1
+p2<-p1+scale_fill_gradient2(midpoint = 0, low = "#56B4E9", mid = "white",
+                            high = "#77C034", space = "Lab" )
+p3<-p2+scale_color_manual(values=c("#77C034", "#E69F00","#56B4E9"))
+p3
+p4 <- p3+guides(size=guide_legend(title="Mantel's R",override.aes=list(colour="grey35"),order=2),
+                colour=guide_legend(title="Mantel's P",override.aes = list(size=3),order=1),
+                fill=guide_colorbar(title="Pearson's R",order=3),family="serif")
+p4
+getwd()
+setwd("D:/R/2023.9.3meimei")
+ggsave("L.pdf",p4,width=20,height = 12,family = "serif")

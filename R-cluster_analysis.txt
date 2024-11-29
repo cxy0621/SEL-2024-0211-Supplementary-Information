@@ -1,0 +1,91 @@
+library(ggtree)
+library(ggtreeExtra)
+
+matrix<-read.csv("*.csv",sep=',',header = T,check.names = F,row.names = 1)
+mat<-t(matrix[,1:10])
+mat<-scale(mat,center=T,scale=T)
+View(mat)
+dend<-as.dendrogram(hclust(dist(t(mat))))
+library(dendextend)
+n=3
+dend<-dend%>%set("branches_k_color",k=n)
+par(mar=c(7.5,3,1,0))
+plot(dend)
+mat2<-mat[,order.dendrogram(dend)]
+mat3<-t(matrix)
+mat3<-mat3[,order.dendrogram(dend)]
+mat3<-mat3[11,]
+lable1=row.names(mat2);lable1
+lable2=colnames(mat2);lable2
+nr=nrow(mat2);nr
+nc=ncol(mat2);nc
+require("circlize")
+col_fun=colorRamp2(c(-1.5,0,1.5),c("skyblue","white","red"))
+col_mat=col_fun(mat2)
+col_mat[,1]
+col_fun1=colorRamp2(c(1,2,3,4,5,6,7,8),c("#548BB7","#DD8047","#A5AB81","#D8B25C","#7BA79D",
+                                         "#968C8C","#318C80","#475F77"))
+col_mat1=matrix(col_fun1(mat3))
+col_mat1[1,]
+col_fin<-matrix(c("#548BB7","#DD8047","#A5AB81","#D8B25C","#7BA79D","#968C8C","#318C80","#475F77"))
+
+ppi<-300
+pdf("**.pdf",width = 4,height = 4)
+par(mar=c(0,0,0,0))
+circos.clear();circos.par(canvas.xlim=c(-1.5,1.5),
+                          canvas.ylim=c(-1.5,1.5),
+                          cell.padding=c(0,0,0,0),
+                          gap.degree=90)
+factors="a"
+max_height<-max(attr(dend,"height"))
+circos.initialize(factors,xlim=c(0,ncol(mat2)))
+circos.trackPlotRegion(ylim=c(0,nr),bg.border=NA, track.height=0.06*nr,
+                       panel.fun=function(x,y){
+                         circos.rect(xleft = 1:nc-1,ybottom =rep(nr+1,nc)+1,
+                                     xright = 1:nc,ytop=rep(nr,nc),
+                                     border="white",
+                                     col=col_mat1)
+                         for(i in 1:nr){
+                           circos.rect(xleft = 1:nc-1,ybottom = rep(nr-i+1,nc),
+                                       xright = 1:nc,ytop= rep(nr-i,nc),
+                                       border="white",
+                                       col=col_mat[i,])
+                           circos.text(x=nc,
+                                       y=10.2-i,
+                                       labels=lable1[i],
+                                       facing = "downward",niceFacing = T,
+                                       cex=0.6,
+                                       adj=c(-0.2,0),
+                                       family="serif")
+                         }
+                       })
+for(i in 1:nc){
+  circos.text(x=i-0.4,
+              y=12,
+              labels=lable2[i],
+              facing = "clockwise",niceFacing = T,
+              cex=0.8,
+              adj=c(0,0),
+              family="serif")
+}
+
+
+
+circos.trackPlotRegion(ylim=c(0,max_height),bg.border=NA, track.height=0.3,
+                       panel.fun=function(x,y){
+                         circos.dendrogram(dend=dend,
+                                           max_height = max_height)
+                       })
+circos.clear()
+
+library(ComplexHeatmap)
+lgd<-Legend(at=c(-2,-1,0,1,2),col_fun=col_fun,
+            title_position="topcenter",title=" ")
+lgd1<-Legend(at=c("Acidobacteria","Actinobacteria","Bacteroidetes","Chloroflexi",
+                  "Gemmatimonadetes","Planctomycetes",
+                  "Proteobacteria","Verrucomicrobia"),legend_gp = gpar(fill = col_fin),
+             title_position="topcenter",title="Phylum level")
+draw(lgd,x=unit(0.6,"npc"),y=unit(0.65,"npc"))
+draw(lgd1,x=unit(0.8,"npc"),y=unit(0.65,"npc"))
+
+dev.off()
